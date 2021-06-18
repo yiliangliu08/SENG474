@@ -1,0 +1,91 @@
+import io
+import configparser
+from configparser import ConfigParser
+from configparser import RawConfigParser
+
+def TRAINMULTINOMIALNB(C, D):
+    V = []
+    N = []
+    Nc = []
+    distinct_Nc = []
+    data_with_label = {}
+    num_V_in_class = {}
+    prior = {}
+    v_occurances = {}
+    conditional_probability = {}
+    for lines in D:
+        for words in lines.split():
+            N.append(words)
+            if words not in V:
+                V.append(words)
+    print(V)
+    print(len(N), len(V))
+    for lines in C:
+        for c in lines.split():
+            if c != '\n':
+                Nc.append(c)
+                if c not in distinct_Nc:
+                    num_V_in_class[c] = ''
+                    data_with_label[c] = ''
+                    distinct_Nc.append(c)
+    print(distinct_Nc)
+    i = 0
+    for c in Nc:
+        data_with_label[c] = data_with_label[c] + D[i]
+        i += 1
+    # for k, v in data_with_label.items():
+    #     print(k, ' = ', v)
+    for c in distinct_Nc:
+        num = len(data_with_label[c].split())
+        num_V_in_class[c] = num
+        prior[c] = Nc.count(c)/len(Nc)
+    for k, v in num_V_in_class.items():
+        print(k, ' = ', v)
+    for c in distinct_Nc:
+        for v in V:
+            v_occurances[(c, v)] = data_with_label[c].split().count(v)
+            conditional_probability[c, v] = (int(v_occurances[(c, v)])+1)/(int(num_V_in_class[c])+len(V))
+    print(v_occurances)
+    print(conditional_probability)
+    return V, prior, conditional_probability, distinct_Nc
+
+def APPLYMULTINOMIALNB(C, V, prior, condprob, D):
+    current_V = []
+    score = {}
+    for d in D.split():
+        current_V.append(d)
+    for c in C:
+        score[c] = 1
+        score[c] = score[c]*prior[c]
+        for v in current_V:
+            if v in V:
+                score[c] = score[c]*condprob[(c, v)]
+    max_score = max(score.values())
+    return [c for c, v in score.items() if v == max_score]
+
+
+if __name__ == '__main__':
+    config = configparser.ConfigParser()
+    config.read('app.ini')
+    data_file_name = config['file']['DATA_NAME']
+    label_file_name = config['file']['Label_NAME']
+
+    data_file = open('traindata.txt', 'r')
+    label_file = open('trainlabels.txt', 'r')
+    data = data_file.readlines()
+    label = label_file.readlines()
+    V, prior, conditional_probability, distint_Nc = TRAINMULTINOMIALNB(label, data)
+    # print(data)
+    data_file = open(data_file_name, 'r')
+    label_file = open(label_file_name, 'r')
+    total = 0
+    correct = 0
+    while True:
+        data = data_file.readline()
+        label = label_file.readline().split()
+        if label == APPLYMULTINOMIALNB(distint_Nc, V, prior, conditional_probability, data):
+            correct += 1
+        if not data:
+            break
+        total += 1
+    print(correct/total)

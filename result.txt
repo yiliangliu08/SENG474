@@ -1,0 +1,2 @@
+Test_data Result: 0.801980198019802
+Train_data_Result: 0.9658385093167702
